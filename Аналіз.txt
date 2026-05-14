@@ -1,0 +1,61 @@
+1. Який канал має найнижчий CAC?
+найнижчий CAC має meta - 3.1 
+
+2. Де найбільші втрати у воронці — на якому етапі найгірша конверсія?
+Найгірша конверсія на етапі purchase - conv_install_purchase_pct 
+
+3. META витрачає в ~3.3x більше ніж TikTok і Google. Чи виправдано це з точки зору CAC?
+Так, тому що  CAC по meta найменьший і дорывнює 3.1 
+Збільшується прибуток
+Підвищується ROI
+Покращується співвідношення LTV/CAC
+Швидша окупність
+
+4. **Бонус:** якщо LTV з минулого заняття склав: TikTok = $8.50, META = $6.20, Google = $12.40 — порахуй LTV/CAC по кожному каналу. Який канал найприбутковіший?
+LTV - TikTok = $8.50, META = $6.20, Google = $12.40
+CAC - TikTok = $5.39, META = $3.1, Google = $14.12
+
+LTV/CAC_TikTok = 8.50/5.39 = 1.58
+LTV/CAC_META = 6.20/3.1 = 2
+LTV/CAC_Google = 12.40/14.12 = 0.88
+
+Найприбутковіший канал - META 
+
+5. **Бонус:** розбий CAC по місяцях — чи змінювалась ефективність каналів протягом кампанії?
+
+WITH deduplicated_ads AS (
+  SELECT *
+  FROM (
+    SELECT 
+      *,
+      ROW_NUMBER() OVER(
+        PARTITION BY ad_id, date 
+        ORDER BY timestamp DESC
+      ) as rn
+    FROM `my-project-sql-workshop-496104.workshop_sql.marketing_ads_raw`
+  )
+  WHERE rn = 1
+),
+
+daily_metrics AS (
+  SELECT
+    source,
+    EXTRACT(MONTH FROM date) as date_month,
+    sum(spend) AS daily_spend,
+    SUM(impressions) AS daily_impr,
+    SUM(clicks) AS daily_clicks,
+    SUM(installs) AS daily_installs,
+    SUM(registrations) AS daily_regs
+  FROM deduplicated_ads
+  GROUP BY 1, 2
+)
+SELECT
+  source,
+  date_month,
+  -- 6. CAC: Витрати / Реєстрації (вартість одного підписника)
+  ROUND(SAFE_DIVIDE(SUM(daily_spend), SUM(daily_regs)), 2) AS CAC
+FROM daily_metrics
+GROUP BY 1,2
+ORDER BY source,date_month
+
+якщо порівнювати січень з останнім місяцем - CAC Знизился по кожному з каналів
