@@ -1,11 +1,8 @@
--- КРОК 1: Дедублікація (залишаємо останній snapshot за кожен день для кожного оголошення)
 WITH deduplicated_ads AS (
   SELECT *
   FROM (
     SELECT 
       *,
-      -- Створюємо номер рядка для кожного оголошення на конкретну дату
-      -- Сортуємо за часом (timestamp) у зворотньому порядку, щоб взяти найновіший запис
       ROW_NUMBER() OVER(
         PARTITION BY ad_id, date 
         ORDER BY timestamp DESC
@@ -14,8 +11,6 @@ WITH deduplicated_ads AS (
   )
   WHERE rn = 1
 ),
-
--- КРОК 2: Денні метрики по каналах
 daily_metrics AS (
   SELECT
     source,
@@ -28,12 +23,9 @@ daily_metrics AS (
   FROM deduplicated_ads
   GROUP BY 1, 2
 )
-
--- КРОК 3: Фінальні метрики за весь період (згідно з image_58beb3.png)
 SELECT
   source,
   date_month,
-  -- 6. CAC: Витрати / Реєстрації (вартість одного підписника)
   ROUND(SAFE_DIVIDE(SUM(daily_spend), SUM(daily_regs)), 2) AS CAC
 FROM daily_metrics
 GROUP BY 1,2
